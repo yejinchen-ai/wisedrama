@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>WiseDrama - 短剧创作</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            orange: '#FF8A3D', // softer dopamine orange
+                            red: '#FF5C5C',    // softer coral red
+                            green: '#2DD4BF',  // brighter mint
+                            surface: '#FFF5F0',// very soft peach
+                            500: '#FF5C5C', 
+                            600: '#FF8A3D', 
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #ffffff; color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .sidebar-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 64px; height: 56px; color: #6b7280; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; margin-bottom: 1rem; }
+        .sidebar-icon:hover { color: #FF5C5C; background-color: #FFF5F0; }
+        .sidebar-icon.active { color: #FF5C5C; background-color: #FFF5F0; }
+        .sidebar-text { font-size: 11px; margin-top: 4px; font-weight: 500; display: block; line-height: 1; }
+        
+        
+        .frame-upload { @apply w-24 h-[104px] bg-[#fafafa] border-[1.5px] border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 hover:border-[#FF5C5C] transition-colors relative overflow-hidden; }
+        .pill-btn { @apply flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-600 bg-white hover:bg-gray-50 cursor-pointer transition; }
+        /* Hide scrollbar for gallery tabs */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .sidebar-icon i { font-size: 22px; display: block; }
+        
+        input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; }
+        input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: #e5e7eb; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #FF5C5C; cursor: pointer; margin-top: -7px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+        input[type="range"]::-moz-range-track { height: 4px; background: #e5e7eb; border-radius: 2px; border: none; }
+        input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #FF5C5C; cursor: pointer; border: none; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+        .config-chip { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.6); border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #374151; font-weight: 500; transition: all 0.15s; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .config-chip:hover { background: #fff; border-color: #e5e7eb; }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row min-h-screen text-gray-800 bg-white">
+    
+    <!-- Sidebar (Left) -->
+    <aside class="hidden md:flex w-[96px] bg-white border-r border-gray-100 flex-col items-center py-6 h-screen sticky top-0 shrink-0 z-10">
+        <!-- Logo Icon -->
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-8 bg-gradient-to-br from-[#FF8A3D] to-[#FF5C5C] shadow-sm">
+            <i class="fa-solid fa-dharmachakra text-white text-2xl"></i>
+        </div>
+        
+        <div class="sidebar-icon" onclick="window.location.reload()"><i class="fa-solid fa-house text-[22px]"></i><span class="sidebar-text">首页</span></div>
+        <div class="sidebar-icon"><i class="fa-solid fa-infinity text-[22px]"></i><span class="sidebar-text">Agent</span></div>
+        <div class="sidebar-icon" onclick="showAssets()"><i class="fa-regular fa-folder-open text-[22px]"></i><span class="sidebar-text">我的资产</span></div>
+        
+        <div class="w-8 h-px bg-gray-100 my-2"></div>
+        
+        <div class="sidebar-icon active relative">
+            <i class="fa-solid fa-video text-[22px]"></i><span class="sidebar-text">视频</span>
+            <span class="absolute -top-0 -right-2 text-brand-500 font-bold text-[10px]">New</span>
+        </div>
+        <div class="sidebar-icon"><i class="fa-regular fa-image text-[22px]"></i><span class="sidebar-text">图片</span></div>
+        <div class="sidebar-icon"><i class="fa-solid fa-music text-[22px]"></i><span class="sidebar-text">音频</span></div>
+        
+        <div class="mt-auto flex flex-col items-center w-full relative">
+            <div class="w-full flex justify-center mb-6">
+                <div class="border border-brand-500 text-brand-500 rounded-[10px] px-2 py-8 text-[9px] md:text-[11px] font-bold flex flex-col items-center justify-between h-20 bg-brand-50 relative cursor-pointer">
+                    <span class="absolute -top-2 bg-brand-500 text-white px-1.5 rounded-sm text-[9px] leading-tight">SALE</span>
+                    <span class="mt-2 text-[12px] md:text-[14px]">0</span>
+                    <span class="text-[10px]">升级</span>
+                </div>
+            </div>
+            
+            <div id="desktopLoginBtn" onclick="showAuthModal()" class="w-10 h-10 bg-gray-100 text-gray-500 hover:text-brand-500 hover:bg-brand-50 rounded-full flex items-center justify-center mb-1 cursor-pointer shadow-sm transition">
+                <i class="fa-regular fa-user text-lg"></i>
+            </div>
+            <span id="desktopUsername" class="text-[10px] text-gray-500 font-bold mb-4 truncate w-full text-center px-1">未登录</span>
+            <div class="text-gray-400 cursor-pointer hover:text-gray-600"><i class="fa-solid fa-ellipsis"></i></div>
+        </div>
+    </aside>
+
+    
+    <!-- Mobile Header -->
+    <header class="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 shrink-0 z-50">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#FF8A3D] to-[#FF5C5C] shadow-sm">
+                <i class="fa-solid fa-dharmachakra text-white text-lg"></i>
+            </div>
+            <span class="font-bold text-gray-800 text-[15px]">WiseDrama</span>
+        </div>
+        <div id="mobileLoginBtn" onclick="showAuthModal()" class="px-3 py-1.5 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-200">登录</div><div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hidden">
+            <i class="fa-solid fa-bars text-gray-600"></i>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 w-full bg-[#FAFAFA] relative pb-10 min-h-screen overflow-hidden">
+        
+        <!-- Dopamine Gradient Orbs -->
+        <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+            <!-- Top Left Orange/Peach Orb -->
+            <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-[#FFD1B3] to-[#FFEDD9] opacity-60 blur-[100px] md:blur-[140px]"></div>
+            <!-- Right Mint Green Orb -->
+            <div class="absolute top-[20%] -right-[10%] w-[40%] h-[60%] rounded-full bg-gradient-to-bl from-[#CCFBF1] to-[#A7F3D0] opacity-50 blur-[100px] md:blur-[140px]"></div>
+            <!-- Bottom Left Soft Pink/White Orb -->
+            <div class="absolute -bottom-[10%] left-[20%] w-[40%] h-[40%] rounded-full bg-[#FFF0F5] opacity-60 blur-[100px] md:blur-[120px]"></div>
+        </div>
+        
+        <!-- Content Wrapper to stay above orbs -->
+        <div class="relative z-10 max-w-[1280px] mx-auto px-4 py-4 md:px-10 md:py-8">
+
+            
+            <!-- Top Tabs -->
+            <div id="topTabs" class="flex items-center gap-3 md:gap-4 mb-6 md:mb-10 w-full overflow-x-auto no-scrollbar pb-2">
+                <button data-mode="video" class="bg-gradient-to-r from-[#FF8A3D] to-[#FF5C5C] shadow-[0_8px_20px_rgba(255,92,92,0.25)] text-white px-8 py-3 rounded-full font-bold text-[15px] flex items-center gap-2 hover:opacity-90 transition w-auto md:w-[240px] whitespace-nowrap shrink-0 px-5 md:px-8 justify-center relative overflow-hidden group">
+                    创作短剧
+                    <img src="https://cdn-icons-png.flaticon.com/512/3208/3208573.png" class="absolute right-2 top-1/2 -translate-y-1/2 w-16 opacity-30 group-hover:scale-110 transition-transform" alt="camera">
+                </button>
+                <button data-mode="storyboard" class="bg-[#f3f4f6] text-gray-700 px-8 py-3 rounded-full font-bold text-[15px] hover:bg-gray-200 transition w-auto md:w-[240px] whitespace-nowrap shrink-0 px-5 md:px-8 justify-center">
+                    创作分镜
+                </button>
+                <button data-mode="screenwriter" class="bg-[#f3f4f6] text-gray-700 px-8 py-3 rounded-full font-bold text-[15px] hover:bg-gray-200 transition w-auto md:w-[240px] whitespace-nowrap shrink-0 px-5 md:px-8 justify-center">
+                    编剧Agent
+                </button>
+            </div>
+
+            <!-- Hero Title -->
+            <div class="mb-6">
+                <h1 class="text-[28px] md:text-[34px] font-bold leading-[1.3] tracking-tight text-[#111827]">
+                    每一个想法<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8A3D] to-[#FF5C5C] shadow-[0_8px_20px_rgba(255,92,92,0.25)]">都是一部大片</span>
+                </h1>
+            </div>
+
+            <!-- Main Input Area -->
+            <div class="mb-10 relative rounded-none md:rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-gray-200/80 focus-within:border-brand-500/60 focus-within:shadow-[0_4px_24px_rgba(255,42,42,0.12)] transition-all duration-300 input-box" onclick="if(!event.target.closest('.config-panel, input, select, button, textarea')){document.getElementById('ideaInput').focus();}">
+
+                <!-- Textarea Section -->
+                <div class="bg-white px-4 pt-4 pb-3 md:px-6 md:pt-5 md:pb-4">
+                    <div class="flex flex-col md:flex-row gap-4 min-h-[120px] md:min-h-[160px]">
+                        <!-- Left: First/Last Frames -->
+                        <div class="flex items-center justify-center md:justify-start gap-3 shrink-0 md:ml-1 md:mt-1 order-2 md:order-1">
+                            <div class="frame-upload">
+                                <i class="fa-solid fa-plus text-[24px] text-gray-400 font-light mb-1"></i>
+                                <span class="text-[12px] text-gray-400">首帧</span>
+                            </div>
+                            <div class="flex flex-col gap-1 items-center text-gray-300">
+                                <i class="fa-solid fa-arrow-right-arrow-left text-[10px]"></i>
+                            </div>
+                            <div class="frame-upload">
+                                <i class="fa-solid fa-plus text-[24px] text-gray-400 font-light mb-1"></i>
+                                <span class="text-[12px] text-gray-400">尾帧</span>
+                            </div>
+                        </div>
+                        <!-- Right: Textarea -->
+                        <div class="flex-1 md:ml-2 order-1 md:order-2 w-full flex flex-col relative h-full min-h-[120px] md:min-h-[160px]">
+                            <textarea id="ideaInput" spellcheck="false" data-lpignore="true"
+                                class="absolute inset-0 w-full h-full resize-none outline-none text-[16px] leading-relaxed placeholder-[#9ca3af] text-gray-800 bg-transparent m-0 border-0 focus:ring-0 z-20"
+                                style="padding-top: 8px; padding-bottom: 8px;"
+                                placeholder="描述您想要生成的视频内容，例如，“一只叫做奥利奥的橘猫，在赛博朋克城市里寻找遗失的小鱼干，霓虹灯闪烁，推镜头。”"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Config Panel - frosted glass -->
+                <div class="config-panel relative z-30 border-t border-gray-200/60 px-3 py-2.5 md:px-5 md:py-3" style="background: linear-gradient(180deg, rgba(249,250,251,0.85) 0%, rgba(243,244,246,0.92) 100%); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+                    <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 md:gap-3">
+                        <!-- Config Items Row -->
+                        <div class="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-2 flex-1">
+                            <!-- Model -->
+                            <div class="config-chip">
+                                <i class="fa-solid fa-cube text-brand-500 text-[10px]"></i>
+                                <select id="modelInput" class="bg-transparent font-bold outline-none cursor-pointer appearance-none pr-1 text-[12px]">
+                                    <option value="seedance-2.0">Seedance 2.0</option>
+                                    <option value="kling-3.0">Kling 3.0</option>
+                                    <option value="hailuo-h3">MiniMax H3 (2K + Audio)</option>
+                                    <option value="hailuo-2.3">Hailuo 2.3</option>
+                                    <option value="veo-3.1">Google Veo 3.1</option>
+                                    <option value="happyhorse-1.1">Alibaba HappyHorse 1.1</option>
+                                    <option value="pixverse">PixVerse V5.6</option>
+                                    <option value="runway">Runway Gen-3</option>
+                                    <option value="sora">Sora 2.0</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down text-[7px] text-gray-300"></i>
+                            </div>
+                            <!-- Resolution -->
+                            <div class="config-chip">
+                                <i class="fa-solid fa-expand text-brand-500 text-[10px]"></i>
+                                <select id="resolutionInput" class="bg-transparent font-bold outline-none cursor-pointer appearance-none pr-1 text-[12px]">
+                                    <option value="720p">720p</option>
+                                    <option value="1080p" selected>1080p</option>
+                                    <option value="2k">2K</option>
+                                    <option value="4k">4K</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down text-[7px] text-gray-300"></i>
+                            </div>
+                            <!-- Duration Slider -->
+                            <div class="config-chip flex-1 min-w-[130px] md:max-w-[220px]" style="position: relative; z-index: 25;">
+                                <i class="fa-regular fa-clock text-brand-500 text-[10px] shrink-0"></i>
+                                <div style="flex-grow: 1; display: flex; align-items: center;">
+                                    <input type="range" id="durationSlider" min="1" max="30" value="3" oninput="updateDurationUI()" style="width: 100%; cursor: pointer; margin: 0; padding: 0; touch-action: none; -webkit-appearance: none; height: 18px;">
+                                </div>
+                                <span id="durationLabel" class="text-[11px] font-black text-brand-500 shrink-0 tabular-nums whitespace-nowrap">3 分钟</span>
+                                <input type="hidden" id="shotsInput" value="30">
+                            </div>
+                            <!-- Token Cost Estimate -->
+                            <div class="hidden md:flex items-center gap-1.5 bg-white/60 border border-white/40 rounded-lg px-2.5 py-[6px] text-[11px] text-gray-400 font-medium shrink-0">
+                                <i class="fa-brands fa-product-hunt text-[10px] text-gray-500"></i>
+                                <span>预估</span>
+                                <span id="tokenCostDisplay" class="font-black text-gray-700 tabular-nums">450</span>
+                            </div>
+                        </div>
+                        <!-- Create Button + Mobile Token -->
+                        <div class="flex items-center gap-3">
+                            <div class="flex md:hidden items-center gap-1 text-[11px] text-gray-400 font-medium shrink-0 pl-1">
+                                <i class="fa-brands fa-product-hunt text-[10px] text-gray-500"></i>
+                                <span>预估</span>
+                                <span id="tokenCostDisplayMobile" class="font-black text-gray-700 tabular-nums">450</span>
+                            </div>
+                            <button id="generateBtn" onclick="startGeneration()" class="bg-[#111827] hover:bg-black active:scale-[0.97] text-white px-5 py-2 md:px-6 md:py-2 flex-1 md:flex-none rounded-lg font-bold text-[12px] md:text-[13px] transition-all flex items-center justify-center gap-1.5 shadow-md whitespace-nowrap">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i> 创作
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Panel (Hidden by default) -->
+                <div id="statusPanel" class="hidden bg-white border-t border-gray-100 px-4 md:px-6 pt-3 pb-2">
+                    <div class="flex items-center justify-between text-[13px] font-medium text-gray-600 mb-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-circle-notch text-brand-500 animate-spin"></i>
+                            <span id="statusText">正在提交生成任务...</span>
+                        </div>
+                        <span id="timerText" class="font-mono text-gray-400">00:00</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div id="topProgress" class="h-full bg-brand-500 w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Horizontal Banners -->
+            <div class="flex flex-col md:flex-row gap-3 md:gap-5 mb-6 md:mb-10 w-full">
+                <div class="flex-1 bg-gradient-to-r from-[#80d0c7] to-[#13547a] h-[120px] md:h-[160px] rounded-2xl overflow-hidden relative shadow-sm cursor-pointer group">
+                    <div class="absolute inset-0 p-6 text-white z-10 flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold">Hailuo AI x 人民日报新媒体</div>
+                        </div>
+                        <h3 class="font-bold text-[22px] leading-tight mb-1">人民日报·未来已来AI创意<br>大比拼活动专区</h3>
+                        <p class="text-[12px] opacity-80 mt-1">用海螺AI畅想未来的中国</p>
+                    </div>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 w-[180px] h-[180px] bg-[url('https://cdn3d.iconscout.com/3d/premium/thumb/astronaut-5842018-4897933.png')] bg-contain bg-no-repeat opacity-90 group-hover:scale-105 transition-transform duration-500 z-10"></div>
+                </div>
+                
+                <div class="flex-1 bg-black h-[120px] md:h-[160px] rounded-2xl overflow-hidden relative shadow-sm cursor-pointer group">
+                     <div class="absolute inset-0 p-6 text-white z-10 flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-wave-square text-xs"></i> <span class="text-[12px] font-bold text-gray-300">MINIMAX × Hailuo AI</span>
+                        </div>
+                        <h3 class="font-bold text-[24px] leading-tight">MiniMax Hailuo 2.3 / 2.3<br>Fast</h3>
+                    </div>
+                    <!-- Right image placeholder for banner -->
+                    <div class="absolute right-0 top-0 bottom-0 w-3/5 bg-[url('https://images.unsplash.com/photo-1542204165-65bf26472b9b?auto=format&fit=crop&w=600&q=80')] bg-cover bg-center opacity-70 group-hover:opacity-90 transition-opacity"></div>
+                    <div class="absolute right-0 top-0 bottom-0 w-3/5 bg-gradient-to-r from-black via-black/50 to-transparent"></div>
+                </div>
+            </div>
+
+            <!-- Gallery Category Tabs -->
+            
+            <div class="flex items-center gap-8 overflow-x-auto no-scrollbar mb-6 border-b border-gray-100 pb-3 mt-4 text-[15px]" id="categoryTabs">
+                <span class="tab-item active font-bold text-gray-900 border-b-2 border-brand-500 pb-3 -mb-[14px] cursor-pointer whitespace-nowrap" data-category="推荐">🔥 热门推荐</span>
+                <span class="tab-item font-medium text-gray-500 hover:text-gray-800 pb-3 cursor-pointer whitespace-nowrap" data-category="赛博朋克">赛博朋克 <span class="text-[9px] bg-[#FFF5F0] text-[#ff6b50] px-1 rounded-sm ml-0.5 border border-[#FFE5DB]">科幻</span></span>
+                <span class="tab-item font-medium text-gray-500 hover:text-gray-800 pb-3 cursor-pointer whitespace-nowrap" data-category="国风仙侠">国风仙侠</span>
+                <span class="tab-item font-medium text-gray-500 hover:text-gray-800 pb-3 cursor-pointer whitespace-nowrap" data-category="二次元">二次元</span>
+                <span class="tab-item font-medium text-gray-500 hover:text-gray-800 pb-3 cursor-pointer whitespace-nowrap" data-category="萌宠动画">萌宠动画</span>
+                <span class="tab-item font-medium text-gray-500 hover:text-gray-800 pb-3 cursor-pointer whitespace-nowrap" data-category="微短剧">微短剧</span>
+            </div>
+
+
+            <!-- Real-time Generated Results Area -->
+            <div id="finalVideoContainer" class="hidden mb-10 mt-6 bg-[#f9fafb] border border-gray-200 rounded-none md:rounded-3xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-film text-brand-500"></i> 成片首映</h2>
+                    <a id="finalDownloadBtn" href="#" download class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-800 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-download"></i> 下载
+                    </a>
+                </div>
+                <video id="finalVideoPlayer" controls class="w-full rounded-2xl aspect-video object-contain bg-black shadow-md"></video>
+            </div>
+
+            <div id="shotsContainer" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 pb-20"></div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        
+        
+        
+        
+        let currentShowcaseTitle = "";
+
+        function openVideo(item) {
+            currentShowcaseTitle = item.title;
+            const modal = document.getElementById('videoModal');
+            const videoEl = document.getElementById('modalVideoPlayer');
+            
+            document.getElementById('modalTitle').innerText = item.title;
+            document.getElementById('modalModel').innerText = item.model;
+            document.getElementById('modalViews').innerText = item.views.replace('w', 'k');
+            document.getElementById('modalPrompt').innerText = `以【${item.title}】为主题，画面呈现出极致的电影级光影质感。主体细节丰富，色彩饱满。镜头缓慢推进，展现出极强的电影感，每一帧都充满视觉张力与叙事深度...`;
+            videoEl.src = item.video;
+            
+            modal.style.display = 'flex';
+            
+            // Trigger reflow to animate
+            void modal.offsetWidth;
+            
+            modal.classList.remove('opacity-0', 'translate-x-full');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeVideo() {
+            const modal = document.getElementById('videoModal');
+            const videoEl = document.getElementById('modalVideoPlayer');
+            
+            modal.classList.add('opacity-0', 'translate-x-full');
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+                videoEl.pause();
+                videoEl.src = '';
+                document.body.style.overflow = '';
+            }, 500);
+        }
+        
+        function useTemplateFromModal() {
+            closeVideo();
+            document.getElementById('ideaInput').value = `以【${currentShowcaseTitle}】为灵感，生成一段充满视觉张力、构图巧妙的高质量AI视频。`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            const ideaInput = document.getElementById('ideaInput');
+            ideaInput.focus();
+            ideaInput.parentElement.classList.add('ring-2', 'ring-[#FF5C5C]');
+            setTimeout(() => ideaInput.parentElement.classList.remove('ring-2', 'ring-[#FF5C5C]'), 1500);
+        }
+
+        
+        // Asset Management
+        function saveToAssets(job) {
+            let assets = JSON.parse(localStorage.getItem('wiseDramaAssets') || '[]');
+            if (!assets.some(a => a.id === job.id)) {
+                assets.unshift({
+                    id: job.id,
+                    title: job.script ? job.script.title : '未命名短剧',
+                    video: API_BASE + job.final_video_url,
+                    date: new Date().toLocaleDateString(),
+                    model: job.model,
+                    views: '1',
+                    duration: '00:00'
+                });
+                localStorage.setItem('wiseDramaAssets', JSON.stringify(assets));
+            }
+        }
+
+        function showAssets() {
+            document.querySelector('.input-box').classList.add('hidden');
+            document.querySelector('.mb-6 h1').innerHTML = '我的资产<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-[#FF8A3D] to-[#FF5C5C] shadow-[0_8px_20px_rgba(255,92,92,0.25)]">个人创作库</span>';
+            document.querySelectorAll('.flex.flex-col.md\\:flex-row.gap-3').forEach(el => el.classList.add('hidden'));
+            document.getElementById('categoryTabs').classList.add('hidden');
+            document.getElementById('finalVideoContainer').classList.add('hidden');
+            
+            const container = document.getElementById('shotsContainer');
+            container.innerHTML = '';
+            
+            let assets = JSON.parse(localStorage.getItem('wiseDramaAssets') || '[]');
+            if (assets.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400">暂无生成的短剧资产，快去创作吧！</div>';
+                return;
+            }
+            
+            assets.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer group";
+                card.innerHTML = `
+                    <div class="relative w-full aspect-[4/3] overflow-hidden bg-black">
+                        <video src="${item.video}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" preload="metadata"></video>
+                        <div class="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur">本地存盘</div>
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-bold text-[14px] text-gray-800 mb-1 line-clamp-1">${item.title}</h4>
+                        <div class="flex items-center justify-between text-[11px] text-gray-500">
+                            <span><i class="fa-solid fa-calendar-days text-[10px] mr-1"></i> ${item.date}</span>
+                            <span class="bg-brand-50 text-brand-500 border border-brand-100 px-1.5 rounded">${item.model}</span>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => { openVideo(item); });
+                container.appendChild(card);
+            });
+        }
+
+        
+        // Auth Logic
+        let currentAuthMode = 'sms';
+        let currentUserInfo = null;
+
+        function switchAuthTab(mode) {
+            currentAuthMode = mode;
+            document.getElementById('authError').classList.add('hidden');
+            var tabs = ['tabSmsLogin','tabLogin','tabRegister'];
+            var forms = ['smsLoginForm','loginForm','registerForm'];
+            var activeTabId = mode==='sms'?'tabSmsLogin':mode==='login'?'tabLogin':'tabRegister';
+            var activeFormId = mode==='sms'?'smsLoginForm':mode==='login'?'loginForm':'registerForm';
+            tabs.forEach(function(id){
+                var el=document.getElementById(id);
+                if(id===activeTabId){el.className='flex-1 py-1.5 text-sm font-bold bg-white text-gray-800 rounded-lg shadow-sm';}
+                else{el.className='flex-1 py-1.5 text-sm font-bold text-gray-500 hover:text-gray-700 rounded-lg transition';}
+            });
+            forms.forEach(function(id){
+                var el=document.getElementById(id);
+                if(id===activeFormId){el.classList.remove('hidden');}
+                else{el.classList.add('hidden');}
+            });
+            if(mode==='sms'){document.getElementById('authTitle').innerText='短信验证码登录';document.getElementById('authBtnText').innerText='验证并登录';}
+            else if(mode==='login'){document.getElementById('authTitle').innerText='密码登录';document.getElementById('authBtnText').innerText='立即登录';}
+            else{document.getElementById('authTitle').innerText='注册新账号';document.getElementById('authBtnText').innerText='立即注册';}
+        }
+
+        function checkAuth() {
+            const token = localStorage.getItem('wd_token');
+            if (token) {
+                fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).then(res => res.json()).then(data => {
+                    if (data.username) {
+                        currentUserInfo = data;
+                        updateUserUI(data.username, data.tokens);
+                    } else { localStorage.removeItem('wd_token'); }
+                }).catch(() => localStorage.removeItem('wd_token'));
+            }
+        }
+
+        function updateUserUI(username, tokens) {
+            document.querySelectorAll('.mt-2.text-\\[12px\\], .mt-2.text-\\[14px\\]').forEach(el => {
+                if(!isNaN(parseInt(el.innerText))) { el.innerText = tokens; }
+            });
+            const loginBtn = document.getElementById('mobileLoginBtn');
+            if (loginBtn) { loginBtn.innerHTML = `<i class="fa-regular fa-user"></i> ${username}`; loginBtn.onclick = showAccountModal; }
+            const desktopUsername = document.getElementById('desktopUsername');
+            const desktopLoginBtn = document.getElementById('desktopLoginBtn');
+            if (desktopUsername && desktopLoginBtn) {
+                desktopUsername.innerText = username;
+                desktopLoginBtn.classList.add('bg-brand-50', 'text-brand-500');
+                desktopLoginBtn.innerHTML = `<i class="fa-solid fa-user-check text-lg"></i>`;
+                desktopLoginBtn.onclick = showAccountModal;
+            }
+        }
+
+        function showAuthModal() {
+            const modal = document.getElementById('authModal');
+            const box = document.getElementById('authBox');
+            modal.style.display = 'flex';
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            box.classList.remove('scale-95');
+            box.classList.add('scale-100');
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById('authModal');
+            const box = document.getElementById('authBox');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+        }
+
+        function showAccountModal() {
+            if(!currentUserInfo) return;
+            const modal = document.getElementById('accountModal');
+            const box = document.getElementById('accountBox');
+            document.getElementById('accAvatar').innerText = currentUserInfo.username.charAt(0).toUpperCase();
+            document.getElementById('accUsername').innerText = currentUserInfo.username;
+            document.getElementById('accContact').innerText = currentUserInfo.contact;
+            document.getElementById('accTokens').innerText = currentUserInfo.tokens;
+            modal.style.display = 'flex';
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            box.classList.remove('scale-95');
+            box.classList.add('scale-100');
+        }
+
+        function closeAccountModal() {
+            const modal = document.getElementById('accountModal');
+            const box = document.getElementById('accountBox');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+        }
+
+        function logout() { localStorage.removeItem('wd_token'); window.location.reload(); }
+
+        
+        async function sendVerifyCode() {
+            const contact = document.getElementById('regContact').value.trim();
+            const errorEl = document.getElementById('authError');
+            if (!contact) { errorEl.innerText = "请先输入邮箱或手机号"; errorEl.classList.remove('hidden'); return; }
+            const btn = document.getElementById('sendCodeBtn');
+            btn.disabled = true; btn.innerText = "发送中...";
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/send-code`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact: contact }) });
+                if (res.ok) {
+                    errorEl.classList.add('hidden');
+                    let countdown = 60;
+                    const timer = setInterval(() => { btn.innerText = `${countdown}s 后重试`; countdown--; if (countdown < 0) { clearInterval(timer); btn.disabled = false; btn.innerText = "获取验证码"; } }, 1000);
+                } else {
+                    const data = await res.json(); errorEl.innerText = data.detail || "发送失败，请重试"; errorEl.classList.remove('hidden'); btn.disabled = false; btn.innerText = "获取验证码";
+                }
+            } catch(e) { errorEl.innerText = "网络请求失败"; errorEl.classList.remove('hidden'); btn.disabled = false; btn.innerText = "获取验证码"; }
+        }
+
+        async function sendSmsLoginCode() {
+            var phone = document.getElementById('smsPhone').value.trim();
+            var errorEl = document.getElementById('authError');
+            if (!phone || !/^1[3-9]\d{9}$/.test(phone)) { errorEl.innerText = "请输入正确的手机号"; errorEl.classList.remove('hidden'); return; }
+            var btn = document.getElementById('smsSendBtn');
+            btn.disabled = true; btn.innerText = "发送中...";
+            try {
+                var res = await fetch(API_BASE+'/api/auth/send-code', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contact:phone}) });
+                if (res.ok) {
+                    errorEl.classList.add('hidden');
+                    var cd = 60;
+                    var timer = setInterval(function(){ btn.innerText = cd+'s'; cd--; if(cd<0){clearInterval(timer);btn.disabled=false;btn.innerText="获取验证码";} },1000);
+                } else {
+                    var data = await res.json(); errorEl.innerText = data.detail||"发送失败"; errorEl.classList.remove('hidden'); btn.disabled=false; btn.innerText="获取验证码";
+                }
+            } catch(e) { errorEl.innerText="网络请求失败"; errorEl.classList.remove('hidden'); btn.disabled=false; btn.innerText="获取验证码"; }
+        }
+
+        async function handleAuthSubmit() {
+            var errorEl = document.getElementById('authError');
+            errorEl.classList.add('hidden');
+            var url, payload;
+            if (currentAuthMode === 'sms') {
+                var phone = document.getElementById('smsPhone').value.trim();
+                var code = document.getElementById('smsCode').value.trim();
+                if (!phone || !code) { errorEl.innerText = "请输入手机号和验证码"; errorEl.classList.remove('hidden'); return; }
+                url = API_BASE+'/api/auth/phone-login'; payload = { phone: phone, code: code };
+            } else if (currentAuthMode === 'login') {
+                var user = document.getElementById('loginUsername').value.trim();
+                var pass = document.getElementById('loginPassword').value.trim();
+                if (!user || !pass) { errorEl.innerText = "请输入账号和密码"; errorEl.classList.remove('hidden'); return; }
+                url = API_BASE+'/api/auth/login'; payload = { username: user, password: pass };
+            } else {
+                var contact = document.getElementById('regContact').value.trim();
+                var user2 = document.getElementById('regUsername').value.trim();
+                var pass2 = document.getElementById('regPassword').value.trim();
+                var code2 = document.getElementById('regCode').value.trim();
+                if (!contact||!user2||!pass2||!code2) { errorEl.innerText = "请填写所有必填项"; errorEl.classList.remove('hidden'); return; }
+                url = API_BASE+'/api/auth/register'; payload = { username: user2, password: pass2, contact: contact, code: code2 };
+            }
+            var btnText = document.getElementById('authBtnText');
+            var origText = btnText.innerText; btnText.innerText = "处理中...";
+            try {
+                var res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+                var data = await res.json();
+                if (res.ok) { localStorage.setItem('wd_token', data.access_token); closeAuthModal(); checkAuth(); window.location.reload(); }
+                else { errorEl.innerText = data.detail||"操作失败"; errorEl.classList.remove('hidden'); }
+            } catch(e) { errorEl.innerText = "网络请求失败"; errorEl.classList.remove('hidden'); }
+            btnText.innerText = origText;
+        }
+
+        window.addEventListener('DOMContentLoaded', checkAuth);
+
+        // Interactive UI logic
+        document.querySelectorAll('.sidebar-icon').forEach(icon => {
+            icon.addEventListener('click', () => {
+                document.querySelectorAll('.sidebar-icon').forEach(i => i.classList.remove('active'));
+                icon.classList.add('active');
+            });
+        });
+
+        let creationMode = 'video';
+        const activeTabClass = 'bg-gradient-to-r from-[#FF8A3D] to-[#FF5C5C] shadow-[0_8px_20px_rgba(255,92,92,0.25)] text-white';
+        const inactiveTabClass = 'bg-[#f3f4f6] text-gray-700 hover:bg-gray-200';
+        function setCreationMode(mode) {
+            if (mode === 'screenwriter') mode = 'storyboard';
+            creationMode = mode;
+            document.querySelectorAll('#topTabs > button').forEach(btn => {
+                const selected = btn.dataset.mode === mode || (mode === 'storyboard' && btn.dataset.mode === 'screenwriter');
+                activeTabClass.split(' ').forEach(c => btn.classList.toggle(c, selected));
+                inactiveTabClass.split(' ').forEach(c => btn.classList.toggle(c, !selected));
+            });
+            const generateBtn = document.getElementById('generateBtn');
+            generateBtn.innerHTML = mode === 'storyboard'
+                ? '<i class="fa-solid fa-clapperboard"></i> 生成分镜'
+                : '<i class="fa-solid fa-wand-magic-sparkles"></i> 立即创作';
+            document.getElementById('ideaInput').placeholder = mode === 'storyboard'
+                ? '描述故事、角色和画面风格，Agent 将生成可编辑的剧本与逐镜头分镜，不会直接生成视频。'
+                : '描述您想要生成的视频内容，例如，“一只叫做奥利奥的橘猫，在赛博朋克城市里寻找遗失的小鱼干，霓虹灯闪烁，推镜头。”';
+        }
+        document.querySelectorAll('#topTabs > button').forEach(btn => btn.addEventListener('click', () => setCreationMode(btn.dataset.mode)));
+
+        let currentJobId = null;
+        let pollInterval = null;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = (sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function updateDurationUI() {
+            const slider = document.getElementById('durationSlider');
+            if(!slider) return;
+            const val = parseInt(slider.value);
+            document.getElementById('durationLabel').innerText = `${val} 分钟`;
+            const shots = val * 10;
+            document.getElementById('shotsInput').value = shots;
+            const cost = shots * 15;
+            const costEl = document.getElementById('tokenCostDisplay');
+            if(costEl) costEl.innerText = cost;
+            const costElM = document.getElementById('tokenCostDisplayMobile');
+            if(costElM) costElM.innerText = cost;
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => { updateDurationUI(); });
+        
+        async function startGeneration() {
+            if(!localStorage.getItem('wd_token')) { showAuthModal(); return; }
+            const idea = document.getElementById('ideaInput').value.trim();
+            const shots = document.getElementById('shotsInput').value;
+            const model = document.getElementById('modelInput').value;
+            const resolution = document.getElementById('resolutionInput').value;
+            if(!idea) {
+                document.getElementById('ideaInput').classList.add('ring-2', 'ring-red-400');
+                setTimeout(() => document.getElementById('ideaInput').classList.remove('ring-2', 'ring-red-400'), 1000);
+                document.getElementById('ideaInput').focus(); return;
+            }
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> ${creationMode === 'storyboard' ? '规划中...' : '创作中...'}`;
+            btn.classList.add('opacity-80', 'cursor-not-allowed');
+            document.getElementById('statusPanel').classList.remove('hidden');
+            document.getElementById('shotsContainer').innerHTML = '';
+            document.getElementById('finalVideoContainer').classList.add('hidden');
+            secondsElapsed = 0;
+            document.getElementById('timerText').innerText = "00:00";
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => { secondsElapsed++; document.getElementById('timerText').innerText = formatTime(secondsElapsed); }, 1000);
+            updateStatus("Agent 正在规划剧本与美术设定...", 10);
+            try {
+                const projectRes = await fetch(`${API_BASE}/api/projects`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: idea.slice(0, 36), prompt: idea, model: model,
+                        resolution: resolution, duration_minutes: parseInt(document.getElementById('durationSlider').value),
+                        ratio: '16:9', language: '中文', style: '电影感写实'
+                    }),
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('wd_token')}` }
+                });
+                if(!projectRes.ok) throw new Error('项目创建失败');
+                const project = await projectRes.json();
+                if (creationMode === 'storyboard') {
+                    const planRes = await fetch(`${API_BASE}/api/projects/${project.id}/plan`, {
+                        method: 'POST', body: JSON.stringify({instruction:'先规划剧本和分镜，不要生成视频', num_shots:parseInt(shots)}),
+                        headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${localStorage.getItem('wd_token')}` }
+                    });
+                    if(!planRes.ok) { const error = await planRes.json(); throw new Error(error.detail || '分镜规划启动失败'); }
+                    window.location.href = `/studio.html?project=${project.id}`;
+                    return;
+                }
+                const res = await fetch(`${API_BASE}/api/generate`, {
+                    method: 'POST', body: JSON.stringify({ idea: idea, num_shots: parseInt(shots), model: model, resolution: resolution, project_id: project.id }),
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('wd_token')}` }
+                });
+                const data = await res.json();
+                if (res.status === 402) { updateStatus("余额不足，请充值", 0, "error"); document.getElementById('topProgress').classList.replace('bg-brand-500', 'bg-red-500'); clearInterval(timerInterval); resetUI(); return; }
+                else if (res.status === 401) { showAuthModal(); resetUI(); clearInterval(timerInterval); return; }
+                currentJobId = data.job_id;
+                window.location.href = `/studio.html?project=${project.id}&job=${data.job_id}`;
+                return;
+            } catch (e) { updateStatus("服务器连接失败", 0, "error"); clearInterval(timerInterval); resetUI(); }
+        }
+
+        async function pollJobStatus() {
+            if(!currentJobId) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/job/${currentJobId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('wd_token')}` } });
+                const job = await res.json();
+                if(job.status === "writing_script") { updateStatus("编剧Agent正在撰写分镜...", 20); }
+                else if(job.status === "generating_art_direction") { updateStatus("美术Agent正在生成锁定设定图...", 35); }
+                else if(job.status === "generating_prompts") { updateStatus("提示词工程师正在平滑过渡...", 45); }
+                else if(job.status.startsWith("generating_videos")) { updateStatus("导演Agent正在调用视觉模型渲染...", 65); renderShots(job.shots); }
+                else if(job.status === "stitching_videos") { updateStatus("剪辑Agent正在合成最终成片...", 90); renderShots(job.shots); }
+                else if(job.status === "completed") {
+                    updateStatus("生成完成！", 100);
+                    if(job.final_video_url) {
+                        const finalContainer = document.getElementById('finalVideoContainer');
+                        finalContainer.classList.remove('hidden');
+                        document.getElementById('finalVideoPlayer').src = API_BASE + job.final_video_url;
+                        document.getElementById('finalDownloadBtn').href = API_BASE + job.final_video_url;
+                        saveToAssets(job);
+                    }
+                    renderShots(job.shots); clearInterval(pollInterval); clearInterval(timerInterval); resetUI();
+                    setTimeout(() => document.getElementById('statusPanel').classList.add('hidden'), 5000);
+                } else if(job.status.startsWith("failed")) {
+                    updateStatus("任务失败: " + job.status, 100);
+                    document.getElementById('topProgress').classList.replace('bg-brand-500', 'bg-red-500');
+                    clearInterval(pollInterval); clearInterval(timerInterval); resetUI();
+                }
+            } catch (e) {}
+        }
+
+        function updateStatus(text, percent) {
+            document.getElementById('statusText').innerText = text;
+            if(percent !== undefined) { document.getElementById('topProgress').style.width = `${percent}%`; }
+        }
+
+        function resetUI() {
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = false;
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i> 创作';
+        }
+
+        function renderShots(shots) {
+            if(!shots || shots.length === 0) return;
+            const container = document.getElementById('shotsContainer');
+            container.innerHTML = '';
+            shots.forEach(shot => {
+                const isDone = shot.status === 'completed';
+                const isProcessing = shot.status === 'processing';
+                const isFailed = shot.status === 'failed';
+                let mediaHtml = '';
+                if(isDone && shot.video_url) { mediaHtml = `<video src="${shot.video_url}" controls loop muted class="w-full aspect-[4/3] object-cover bg-black"></video>`; }
+                else if (isProcessing) { mediaHtml = `<div class="w-full aspect-[4/3] bg-gray-50 flex flex-col items-center justify-center text-brand-500 border-b border-gray-100"><i class="fa-solid fa-circle-notch animate-spin text-2xl mb-2"></i><span class="text-[9px] md:text-[11px] font-bold tracking-widest uppercase">渲染中</span></div>`; }
+                else if (isFailed) { mediaHtml = `<div class="w-full aspect-[4/3] bg-red-50 flex flex-col items-center justify-center text-red-400 border-b border-red-100"><i class="fa-solid fa-circle-xmark text-2xl mb-2"></i><span class="text-[9px] md:text-[11px] font-bold tracking-widest uppercase">渲染失败</span></div>`; }
+                else { mediaHtml = `<div class="w-full aspect-[4/3] bg-gray-50 flex flex-col items-center justify-center text-gray-400 border-b border-gray-100"><i class="fa-solid fa-hourglass-half text-xl mb-2 opacity-50"></i><span class="text-[10px] font-bold tracking-widest uppercase">排队中</span></div>`; }
+                const card = document.createElement('div');
+                card.className = "rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col";
+                card.innerHTML = `<div class="relative w-full shrink-0 group">${mediaHtml}${isDone ? `<a href="${shot.video_url}" download target="_blank" class="absolute top-2 right-2 bg-black/50 hover:bg-black/80 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-download text-[10px]"></i></a>` : ''}</div><div class="p-4 flex flex-col flex-1"><div class="flex items-center justify-between mb-2"><span class="text-[9px] md:text-[11px] font-bold text-gray-800 bg-gray-100 px-2 py-0.5 rounded-md">分镜 ${shot.shot_number}</span></div><p class="text-[13px] text-gray-600 line-clamp-3 mb-2 flex-1" title="${shot.prompt}">${shot.prompt}</p></div>`;
+                container.appendChild(card);
+            });
+        }
+    
+        const showcaseData = [{"id": 1, "title": "《霓虹深渊》- 赛博朋克微短剧", "img": "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", "duration": "03:12", "views": "12.5w", "model": "Veo 2.0", "category": "赛博朋克"}, {"id": 2, "title": "夜之城：失控的AI仿生人", "img": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", "duration": "01:45", "views": "8.9w", "model": "Hailuo 2.3", "category": "赛博朋克"}, {"id": 3, "title": "未来赛车：光速漂移", "img": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", "duration": "00:58", "views": "21.3w", "model": "Sora", "category": "赛博朋克"}, {"id": 13, "title": "赛博艺妓的复仇", "img": "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", "duration": "02:20", "views": "14.2w", "model": "Veo 2.0", "category": "赛博朋克"}, {"id": 14, "title": "霓虹雨夜：骇客帝国", "img": "https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4", "duration": "04:15", "views": "19.8w", "model": "Hailuo 2.3", "category": "赛博朋克"}, {"id": 4, "title": "《长风渡》- 国风仙侠短剧（饭制）", "img": "https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", "duration": "05:40", "views": "8.2w", "model": "Hailuo 2.3", "category": "国风仙侠"}, {"id": 5, "title": "剑气纵横三万里：水墨武侠", "img": "https://images.unsplash.com/photo-1576485290814-1c72aa4bbb8e?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", "duration": "02:15", "views": "15.6w", "model": "Veo 2.0", "category": "国风仙侠"}, {"id": 6, "title": "青丘狐妖：幻境唯美空镜", "img": "https://images.unsplash.com/photo-1615414050682-192a5d2109fb?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", "duration": "01:20", "views": "3.4w", "model": "Hailuo 2.3", "category": "国风仙侠"}, {"id": 15, "title": "大唐盛世：长安十二时辰", "img": "https://images.unsplash.com/photo-1582234372722-50d7ccc30ebd?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", "duration": "03:45", "views": "28.5w", "model": "Sora", "category": "国风仙侠"}, {"id": 16, "title": "山海经：神兽降临", "img": "https://images.unsplash.com/photo-1614531341773-3bff8b7cb3fc?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", "duration": "02:50", "views": "11.1w", "model": "Veo 2.0", "category": "国风仙侠"}, {"id": 9, "title": "魔法少女的终极咏唱", "img": "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", "duration": "03:45", "views": "11.2w", "model": "Hailuo 2.3", "category": "二次元"}, {"id": 10, "title": "日系新海诚风：电车与黄昏", "img": "https://images.unsplash.com/photo-1494548162494-384bba4ab999?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", "duration": "00:45", "views": "33.8w", "model": "Veo 2.0", "category": "二次元"}, {"id": 17, "title": "机甲少女觉醒：破晓之战", "img": "https://images.unsplash.com/photo-1560972550-aba3456b5564?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4", "duration": "04:30", "views": "42.1w", "model": "Hailuo 2.3", "category": "二次元"}, {"id": 18, "title": "异世界转生：史莱姆大魔王", "img": "https://images.unsplash.com/photo-1612404730960-5c71577fca11?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", "duration": "02:15", "views": "18.7w", "model": "Veo 2.0", "category": "二次元"}, {"id": 7, "title": "《猫咪侦探局》- 萌宠悬疑剧", "img": "https://images.unsplash.com/photo-1580477667995-2b920625368a?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", "duration": "02:30", "views": "5.6w", "model": "Veo 2.0", "category": "萌宠动画"}, {"id": 8, "title": "柯基的奇幻太空漂流", "img": "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", "duration": "01:10", "views": "45.1w", "model": "Sora", "category": "萌宠动画"}, {"id": 19, "title": "柴犬武士：决战紫禁之巅", "img": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", "duration": "03:05", "views": "31.2w", "model": "Hailuo 2.3", "category": "萌宠动画"}, {"id": 20, "title": "胖橘猫的偷吃大作战", "img": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", "duration": "01:50", "views": "26.4w", "model": "Veo 2.0", "category": "萌宠动画"}, {"id": 11, "title": "《阿尔卑斯之恋》- 唯美情感短剧", "img": "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", "duration": "01:50", "views": "9.3w", "model": "Veo 2.0", "category": "微短剧"}, {"id": 12, "title": "霸总的秘密协议：第一集", "img": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", "duration": "04:20", "views": "18.9w", "model": "Hailuo 2.3", "category": "微短剧"}, {"id": 21, "title": "重生之我才是真少爷", "img": "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4", "duration": "05:15", "views": "105.2w", "model": "Hailuo 2.3", "category": "微短剧"}, {"id": 22, "title": "逃离循环：时间囚徒", "img": "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", "duration": "03:40", "views": "34.6w", "model": "Sora", "category": "微短剧"}, {"id": 23, "title": "豪门恩怨：婆媳风云", "img": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=600&q=80", "video": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", "duration": "02:55", "views": "56.8w", "model": "Veo 2.0", "category": "微短剧"}];
+        
+        function renderShowcases(category) {
+            const container = document.getElementById('shotsContainer');
+            container.innerHTML = '';
+            let filtered = showcaseData;
+            if (category !== '推荐') { filtered = showcaseData.filter(item => item.category === category); }
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer group";
+                card.innerHTML = `
+                    <div class="relative w-full aspect-[4/3] overflow-hidden">
+                        <img src="${item.img}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur">${item.duration}</div>
+                    </div>
+                    <div class="p-2.5 md:p-3">
+                        <h4 class="font-bold text-[12px] md:text-[14px] text-gray-800 mb-1 line-clamp-1">${item.title}</h4>
+                        <div class="flex items-center justify-between text-[9px] md:text-[11px] text-gray-500">
+                            <span><i class="fa-solid fa-play text-[10px] mr-1"></i> ${item.views} 播放</span>
+                            <span class="bg-gray-100 px-1.5 rounded">${item.model}</span>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => { openVideo(item); });
+                container.appendChild(card);
+            });
+        }
+        
+        renderShowcases('推荐');
+        
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab-item').forEach(t => {
+                    t.classList.remove('font-bold', 'text-gray-900', 'border-b-2', 'border-brand-500');
+                    t.classList.add('font-medium', 'text-gray-500');
+                });
+                const target = e.currentTarget;
+                target.classList.remove('font-medium', 'text-gray-500');
+                target.classList.add('font-bold', 'text-gray-900', 'border-b-2', 'border-brand-500');
+                renderShowcases(target.getAttribute('data-category'));
+            });
+        });
+
+</script>
+    
+    
+    <!-- Large Detail Modal (Full Page Overlay) -->
+    <div id="videoModal" class="fixed inset-y-0 right-0 z-[100] bg-white/95 backdrop-blur-3xl flex transition-all duration-500 transform translate-x-full opacity-0" style="display: none;" class="w-full md:w-[calc(100%-96px)]">
+        
+        <!-- Close Button -->
+        <button onclick="closeVideo()" class="absolute top-3 right-3 md:top-6 md:right-8 bg-black/20 md:bg-transparent rounded-full md:rounded-none text-white md:text-gray-400 text-gray-400 hover:text-black transition p-2 z-50">
+            <i class="fa-solid fa-xmark text-2xl"></i>
+        </button>
+
+        <div class="flex flex-col md:flex-row w-full h-full p-0 md:p-10 gap-0 md:gap-10 relative">
+            <div class="w-full h-[40vh] md:flex-1 flex flex-col justify-center items-center relative md:h-full shrink-0">
+                <div class="w-full h-full md:h-auto md:max-w-[1000px] md:aspect-video bg-black rounded-none md:rounded-3xl overflow-hidden relative shadow-none md:shadow-[0_20px_60px_rgba(0,0,0,0.15)] md:ring-1 md:ring-black/5" style="box-shadow: 0 0 40px rgba(0,0,0,0.1), inset 0 0 0 1px rgba(255,255,255,0.1);">
+                    <video id="modalVideoPlayer" class="w-full h-full object-contain" controls autoplay playsinline loop></video>
+                    <div class="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent pointer-events-none"></div>
+                    <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+                </div>
+            </div>
+            <div class="w-full md:w-[420px] flex flex-col flex-1 pt-6 px-5 md:px-0 md:pr-4 shrink-0 overflow-y-auto pb-6">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-sm shadow-md">W</div>
+                        <span class="text-sm font-bold text-gray-800">WiseDrama</span>
+                        <span class="bg-gray-100 text-gray-600 hover:text-gray-800 cursor-pointer text-[12px] font-medium px-3 py-1 rounded-full transition border border-gray-200">+ 关注</span>
+                    </div>
+                    <div class="flex items-center gap-4 text-gray-500">
+                        <span class="flex items-center gap-1.5 hover:text-red-500 cursor-pointer transition"><i class="fa-regular fa-heart"></i> <span id="modalViews" class="text-[12px] md:text-[14px]">229</span></span>
+                        <i class="fa-solid fa-ellipsis cursor-pointer hover:text-gray-800 transition text-lg"></i>
+                    </div>
+                </div>
+                <h2 id="modalTitle" class="text-[22px] font-extrabold text-gray-900 mb-4 leading-snug">视频标题</h2>
+                <p id="modalPrompt" class="text-[15px] text-gray-500 leading-relaxed mb-6 font-normal">视频提示词将在这里显示...</p>
+                <div class="text-[13px] text-gray-400 mb-auto">2026-03-11 | 内容由 <span id="modalModel" class="font-medium text-brand-500">AI</span> 生成</div>
+                <div class="pt-6 border-t border-gray-100 mt-auto pb-8">
+                    <button onclick="useTemplateFromModal()" class="w-full bg-gradient-to-r from-[#FF8A3D] to-[#FF5C5C] shadow-[0_8px_20px_rgba(255,92,92,0.25)] hover:opacity-90 text-white py-4 rounded-2xl font-bold text-[16px] transition flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 active:scale-95">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> 一键做同款
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Auth Modal -->
+    <div id="authModal" class="fixed inset-0 z-[200] items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 opacity-0 pointer-events-none" style="display: none;">
+        <div class="bg-white w-[90%] max-w-[400px] rounded-2xl shadow-2xl p-8 relative transform scale-95 transition-transform duration-300" id="authBox">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 mx-auto rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#FF8A3D] to-[#FF5C5C] shadow-sm mb-3">
+                    <i class="fa-solid fa-dharmachakra text-white text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900" id="authTitle">短信验证码登录</h2>
+            </div>
+            <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
+                <button id="tabSmsLogin" type="button" onclick="switchAuthTab('sms')" class="flex-1 py-1.5 text-sm font-bold bg-white text-gray-800 rounded-lg shadow-sm">短信登录</button>
+                <button id="tabLogin" type="button" onclick="switchAuthTab('login')" class="flex-1 py-1.5 text-sm font-bold text-gray-500 hover:text-gray-700 rounded-lg transition">密码登录</button>
+                <button id="tabRegister" type="button" onclick="switchAuthTab('register')" class="flex-1 py-1.5 text-sm font-bold text-gray-500 hover:text-gray-700 rounded-lg transition">注册</button>
+            </div>
+            <div id="smsLoginForm" class="space-y-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">手机号</label><input type="tel" id="smsPhone" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="请输入手机号" maxlength="11"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">验证码</label><div class="flex gap-2"><input type="text" id="smsCode" class="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="6位验证码" maxlength="6"><button type="button" id="smsSendBtn" onclick="sendSmsLoginCode()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-xl font-bold text-sm transition whitespace-nowrap border border-gray-200">获取验证码</button></div></div>
+            </div>
+            <div id="loginForm" class="space-y-4 hidden">
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">邮箱/手机号/用户名</label><input type="text" id="loginUsername" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="请输入账号"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">密码</label><input type="password" id="loginPassword" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="请输入密码"></div>
+            </div>
+            <div id="registerForm" class="space-y-4 hidden">
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">邮箱 / 手机号 <span class="text-red-500">*</span></label><input type="text" id="regContact" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="输入邮箱或手机号"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">验证码 <span class="text-red-500">*</span></label><div class="flex gap-2"><input type="text" id="regCode" class="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="6位验证码"><button type="button" id="sendCodeBtn" onclick="sendVerifyCode()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-xl font-bold text-sm transition whitespace-nowrap border border-gray-200">获取验证码</button></div></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">用户名 <span class="text-red-500">*</span></label><input type="text" id="regUsername" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="设置一个炫酷的昵称"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">密码 <span class="text-red-500">*</span></label><input type="password" id="regPassword" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition" placeholder="设置密码"></div>
+            </div>
+            <div id="authError" class="text-red-500 text-xs hidden mt-3 text-center"></div>
+            <button onclick="handleAuthSubmit()" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-xl transition shadow-md mt-6 flex justify-center items-center gap-2">
+                <span id="authBtnText">验证并登录</span><i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Account Info Modal -->
+    <div id="accountModal" class="fixed inset-0 z-[200] items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 opacity-0 pointer-events-none" style="display: none;">
+        <div class="bg-white w-[90%] max-w-[360px] rounded-3xl shadow-2xl p-8 relative transform scale-95 transition-transform duration-300" id="accountBox">
+            <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition bg-gray-100 rounded-full w-8 h-8 flex justify-center items-center"><i class="fa-solid fa-xmark"></i></button>
+            <div class="flex flex-col items-center">
+                <div class="w-20 h-20 bg-gradient-to-tr from-brand-500 to-blue-500 rounded-full text-white flex justify-center items-center text-3xl font-bold shadow-lg mb-4" id="accAvatar">W</div>
+                <h2 class="text-xl font-extrabold text-gray-900" id="accUsername">Username</h2>
+                <span class="text-xs text-gray-500 mt-1 bg-gray-100 px-2 py-0.5 rounded-md" id="accContact">contact@email.com</span>
+                <div class="w-full bg-brand-50 rounded-2xl p-4 mt-6 border border-brand-100 flex justify-between items-center">
+                    <div><div class="text-brand-600 text-xs font-bold mb-1">可用算力 Token</div><div class="text-3xl font-black text-brand-500 flex items-center gap-1"><i class="fa-brands fa-product-hunt text-xl"></i> <span id="accTokens">0</span></div></div>
+                    <button class="bg-white text-brand-500 border border-brand-200 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:shadow transition">充值</button>
+                </div>
+                <button onclick="logout()" class="w-full mt-6 py-2.5 text-gray-500 hover:bg-red-50 hover:text-red-500 font-bold rounded-xl transition border border-transparent hover:border-red-100">退出登录</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WiseDrama Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    :root { color-scheme: dark; }
+    body { background:#090b10; color:#e8eaf0; font-family:Inter,"PingFang SC",sans-serif; }
+    .panel { background:#11141b; border-color:#232834; }
+    .soft { background:#171b24; border:1px solid #262d3b; }
+    .accent { background:linear-gradient(135deg,#ff8a3d,#ff5468); }
+    .scroll::-webkit-scrollbar { width:6px;height:6px }.scroll::-webkit-scrollbar-thumb{background:#343b49;border-radius:8px}
+    input,textarea,select { color-scheme:dark; }
+    .shot-card.dragging { opacity:.45; border-color:#fb923c; }
+    .shot-card.drag-over { border-top:2px solid #fb923c; }
+    @media (max-width: 900px) {
+      body { overflow:auto!important; }
+      main { display:flex!important; flex-direction:column; height:auto!important; }
+      main>aside, main>section { width:100%; border-left:0!important; border-right:0!important; }
+      main>aside:first-child { min-height:420px; }
+      main>section { min-height:560px; order:-1; }
+      main>aside:last-child { min-height:520px; }
+      header { position:sticky; top:0; z-index:20; }
+      header>button { display:none; }
+    }
+  </style>
+</head>
+<body class="h-screen overflow-hidden">
+  <header class="h-14 panel border-b flex items-center px-4 gap-4">
+    <a href="/" class="font-black tracking-tight text-lg"><span class="text-orange-400">Wise</span>Drama</a>
+    <span class="text-gray-600">/</span>
+    <input id="projectTitle" class="bg-transparent font-semibold outline-none min-w-0 flex-1" value="加载项目…">
+    <span id="saveState" class="text-xs text-gray-500">已保存</span>
+    <button onclick="branchProject()" class="soft px-3 py-2 rounded-lg text-xs"><i class="fa-solid fa-code-branch mr-2"></i>创建分支</button>
+    <a id="exportBtn" class="accent px-4 py-2 rounded-lg text-sm font-bold text-white opacity-50 pointer-events-none"><i class="fa-solid fa-download mr-2"></i>导出</a>
+  </header>
+
+  <main class="grid grid-cols-[310px_minmax(420px,1fr)_360px] h-[calc(100vh-56px)]">
+    <aside class="panel border-r flex flex-col min-w-0">
+      <nav class="h-12 px-3 border-b border-[#232834] flex items-end gap-1">
+        <button data-tab="storyboard" class="tab px-3 py-3 text-xs font-bold text-orange-400 border-b-2 border-orange-400">分镜</button>
+        <button data-tab="media" class="tab px-3 py-3 text-xs text-gray-500">素材</button>
+        <button data-tab="docs" class="tab px-3 py-3 text-xs text-gray-500">文档</button>
+      </nav>
+      <section id="leftPanel" class="scroll overflow-y-auto flex-1 p-3"></section>
+    </aside>
+
+    <section class="bg-[#0c0f15] flex flex-col min-w-0">
+      <div class="h-12 px-4 border-b border-[#232834] flex items-center justify-between">
+        <div class="flex gap-2 text-xs">
+          <button class="soft rounded-md px-3 py-1.5 text-orange-300">预览</button>
+          <button class="rounded-md px-3 py-1.5 text-gray-500">画布</button>
+        </div>
+        <span id="projectStatus" class="text-xs text-gray-500">draft</span>
+      </div>
+      <div class="flex-1 flex items-center justify-center p-8 min-h-0">
+        <div class="w-full max-w-4xl aspect-video bg-black rounded-xl border border-[#282e3a] overflow-hidden shadow-2xl relative">
+          <video id="preview" controls class="w-full h-full object-contain hidden"></video>
+          <div id="emptyPreview" class="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
+            <i class="fa-solid fa-clapperboard text-5xl mb-4"></i>
+            <p class="text-sm">选择分镜或等待 Agent 生成内容</p>
+          </div>
+        </div>
+      </div>
+      <div class="h-52 panel border-t flex flex-col">
+        <div class="h-10 px-4 border-b border-[#232834] flex items-center justify-between text-xs">
+          <span class="font-bold">时间线</span><span id="timelineDuration" class="text-gray-500">00:00</span>
+        </div>
+        <div id="timeline" class="scroll flex-1 overflow-x-auto p-4 flex gap-2 items-start"></div>
+      </div>
+    </section>
+
+    <aside class="panel border-l flex flex-col min-w-0">
+      <div class="h-12 px-4 border-b border-[#232834] flex items-center justify-between">
+        <div><i class="fa-solid fa-wand-magic-sparkles text-orange-400 mr-2"></i><b>创作 Agent</b></div>
+        <span class="text-[10px] bg-purple-500/15 text-purple-300 px-2 py-1 rounded">Kimi K3</span>
+      </div>
+      <div id="agentLog" class="scroll flex-1 overflow-y-auto p-4 space-y-3"></div>
+      <div class="p-3 border-t border-[#232834]">
+        <div id="quickActions" class="flex flex-wrap gap-1.5 mb-2">
+          <button onclick="fillAgent('先规划剧本和分镜，不要生成视频')" class="soft text-[10px] rounded-full px-2.5 py-1.5">仅规划</button>
+          <button onclick="fillAgent('检查角色一致性并优化所有分镜')" class="soft text-[10px] rounded-full px-2.5 py-1.5">一致性检查</button>
+          <button onclick="fillAgent('开始生成全部分镜视频并组装时间线')" class="soft text-[10px] rounded-full px-2.5 py-1.5">全流程生成</button>
+        </div>
+        <div class="soft rounded-xl p-2">
+          <textarea id="agentInput" rows="3" class="w-full bg-transparent resize-none outline-none text-sm p-1" placeholder="描述目标、修改或生成要求…"></textarea>
+          <div class="flex justify-between items-center">
+            <button class="text-gray-500 px-2"><i class="fa-solid fa-paperclip"></i></button>
+            <button onclick="runAgent()" class="accent w-9 h-9 rounded-lg"><i class="fa-solid fa-arrow-up"></i></button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const token = localStorage.getItem('wd_token');
+    const params = new URLSearchParams(location.search);
+    const projectId = params.get('project');
+    let jobId = params.get('job');
+    let project = null;
+    let activeTab = 'storyboard';
+    const headers = () => ({'Content-Type':'application/json','Authorization':`Bearer ${token}`});
+
+    async function api(path, options={}) {
+      const response = await fetch(API_BASE+path, {...options, headers:{...headers(),...(options.headers||{})}});
+      if (response.status === 401) { location.href='/'; throw new Error('请先登录'); }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || '请求失败');
+      return data;
+    }
+
+    async function loadProject() {
+      if (!token || !projectId) { location.href='/'; return; }
+      project = await api(`/api/projects/${projectId}`);
+      jobId = jobId || project.active_job_id;
+      document.getElementById('projectTitle').value = project.title;
+      document.getElementById('projectStatus').textContent = translateStatus(project.status);
+      renderLeft(); renderTimeline(); renderAgentLog();
+      if(project.final_video_url) setPreview(API_BASE+project.final_video_url);
+      const exportBtn=document.getElementById('exportBtn');
+      if(project.final_video_url){ exportBtn.href=API_BASE+project.final_video_url; exportBtn.classList.remove('opacity-50','pointer-events-none'); }
+    }
+
+    function translateStatus(status='') {
+      const map={draft:'草稿',planning:'规划中',storyboard_ready:'分镜待确认',planning_failed:'规划失败',writing_script:'编剧中',generating_art_direction:'角色与场景设计',generating_prompts:'分镜设计',stitching_videos:'组装时间线',completed:'已完成',running:'执行中'};
+      return status.startsWith('generating_videos')?'生成镜头中':(map[status]||status);
+    }
+
+    function renderLeft(){
+      const panel=document.getElementById('leftPanel');
+      if(activeTab==='storyboard'){
+        const elements=(project.elements||[]).map(e=>`<div class="soft rounded-lg p-3 mb-2"><div class="text-[10px] text-purple-300 mb-1">关键角色</div><b class="text-sm">${escapeHtml(e.name||'角色')}</b><p class="text-xs text-gray-500 mt-1 line-clamp-3">${escapeHtml(e.appearance_prompt||'')}</p></div>`).join('');
+        const shots=(project.shots||[]).map(s=>`<article class="shot-card soft rounded-xl p-3 mb-2 cursor-pointer hover:border-orange-400/50" draggable="true" data-shot="${s.shot_number}" onclick="selectShot(${s.shot_number})"><div class="flex justify-between items-center"><div class="flex items-center gap-2"><i class="drag-handle fa-solid fa-grip-vertical text-gray-600 cursor-grab" title="拖拽排序"></i><b class="text-xs">镜头 ${s.shot_number}</b><span class="text-[10px] ${s.status==='completed'?'text-green-400':'text-gray-500'}">${s.status||'planned'}</span></div><div class="flex gap-1"><button onclick="duplicateShot(event,${s.shot_number})" class="w-7 h-7 rounded hover:bg-white/5 text-gray-500" title="复制"><i class="fa-regular fa-copy"></i></button><button onclick="deleteShot(event,${s.shot_number})" class="w-7 h-7 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400" title="删除"><i class="fa-regular fa-trash-can"></i></button></div></div><textarea onclick="event.stopPropagation()" onchange="saveShot(${s.shot_number},this.value)" class="w-full bg-transparent text-xs text-gray-400 mt-2 resize-none outline-none" rows="4">${escapeHtml(s.video_prompt||s.prompt||s.scene_description||'')}</textarea><div class="text-[10px] text-gray-600 mt-1">${s.duration||6}s · 可拖拽调整顺序</div></article>`).join('');
+        const empty=`<div class="soft rounded-xl p-4"><p class="text-xs text-gray-400 mb-3">填写右侧创作要求，或直接让 Agent 规划第一版分镜。</p><button onclick="planStoryboard()" class="accent text-xs px-3 py-2 rounded-lg">开始规划分镜</button></div>`;
+        panel.innerHTML=`<div class="mb-4"><div class="text-[10px] uppercase text-gray-600 mb-2">关键元素</div>${elements||'<p class="text-xs text-gray-600">Agent 将在这里建立角色和场景资产。</p>'}</div><div><div class="flex items-center justify-between mb-2"><div class="text-[10px] uppercase text-gray-600">镜头列表 · ${(project.shots||[]).length}</div><button onclick="addShot()" class="text-[10px] text-orange-300 hover:text-orange-200"><i class="fa-solid fa-plus mr-1"></i>新增镜头</button></div>${shots||empty}</div>`;
+        bindShotDrag();
+      } else if(activeTab==='media') {
+        panel.innerHTML=(project.media||[]).map(m=>`<div class="soft rounded-xl overflow-hidden mb-3 cursor-pointer" onclick="${m.type==='video'?`setPreview('${escapeHtml(m.url||'')}')`:''}">${m.type==='video'?`<video src="${escapeHtml(m.url||'')}" class="w-full aspect-video object-cover"></video>`:`<img src="${escapeHtml(m.url||'')}" class="w-full aspect-video object-cover">`}<div class="p-2 text-xs flex justify-between"><span>镜头 ${m.shot_number}</span><span class="text-gray-500">${m.purpose}</span></div></div>`).join('')||'<p class="text-xs text-gray-600">未分类素材和生成版本将显示在这里。</p>';
+      } else {
+        panel.innerHTML=`<div class="soft rounded-xl p-3"><div class="text-xs text-orange-300 mb-2">Final Video Spec</div>${Object.entries(project.spec||{}).map(([k,v])=>`<label class="block mb-3"><span class="text-[10px] text-gray-500">${k}</span><input data-spec="${k}" value="${escapeHtml(String(v))}" class="w-full bg-transparent border-b border-[#303746] py-1 text-xs outline-none"></label>`).join('')}<button onclick="saveSpec()" class="accent text-xs px-3 py-2 rounded-lg">保存规格</button></div><div class="soft rounded-xl p-3 mt-3"><div class="text-xs text-orange-300 mb-2">原始创意</div><p class="text-xs text-gray-400 whitespace-pre-wrap">${escapeHtml(project.prompt||'')}</p></div>`;
+      }
+    }
+
+    function renderTimeline(){
+      const items=project.timeline||[]; let total=0;
+      document.getElementById('timeline').innerHTML=items.map(item=>{total+=item.duration||0;return `<button onclick="selectShot(${item.shot_number})" class="soft rounded-lg w-32 shrink-0 overflow-hidden text-left"><div class="h-16 bg-black flex items-center justify-center text-gray-600"><i class="fa-solid fa-film"></i></div><div class="p-2 text-[10px]">镜头 ${item.shot_number} · ${item.duration||6}s</div></button>`}).join('')||'<span class="text-xs text-gray-600">Agent 组装后，视频片段会按顺序出现在这里。</span>';
+      document.getElementById('timelineDuration').textContent=`${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+    }
+
+    function renderAgentLog(){
+      const log=document.getElementById('agentLog');
+      log.innerHTML=`<div class="soft p-3 rounded-xl text-sm"><p>我是 WiseDrama 创作 Agent。你可以让我规划、修改分镜，或执行完整生成。</p></div>`+(project.agent_events||[]).slice(-20).map(e=>`<div class="ml-5 border-l border-orange-400/30 pl-3 py-1"><div class="text-xs">${escapeHtml(translateStatus(e.message||''))}</div><div class="text-[10px] text-gray-600 mt-1">${e.type||'agent'}</div></div>`).join('');
+      log.scrollTop=log.scrollHeight;
+    }
+
+    async function runAgent(){
+      const input=document.getElementById('agentInput'); const text=input.value.trim(); if(!text)return;
+      input.value='';
+      const log=document.getElementById('agentLog'); log.innerHTML+=`<div class="ml-8 bg-orange-500/10 border border-orange-500/20 p-3 rounded-xl text-sm">${escapeHtml(text)}</div>`;
+      if(/仅规划|不要生成|先规划/.test(text)){
+        const spec=project.spec||{};
+        await api(`/api/projects/${project.id}/plan`,{method:'POST',body:JSON.stringify({instruction:text,num_shots:Math.min(30,Math.max(1,(spec.duration_minutes||1)*10))})});
+        document.getElementById('agentLog').innerHTML+=`<div class="soft p-3 rounded-xl text-sm">已开始规划：只生成剧本、角色和分镜，不调用视频模型。</div>`;
+        startProjectPolling();
+      } else if(/生成|开始|执行|全流程/.test(text)){
+        const spec=project.spec||{};
+        const data=await api('/api/generate',{method:'POST',body:JSON.stringify({idea:project.prompt||text,num_shots:Math.min(30,Math.max(1,(spec.duration_minutes||1)*10)),model:spec.model||'hailuo-h3',resolution:spec.resolution||'2k',project_id:project.id})});
+        jobId=data.job_id; poll();
+      } else {
+        const spec=project.spec||{};
+        await api(`/api/projects/${project.id}/plan`,{method:'POST',body:JSON.stringify({instruction:text,num_shots:Math.min(30,Math.max(1,(spec.duration_minutes||1)*10))})});
+        log.innerHTML+=`<div class="soft p-3 rounded-xl text-sm">已收到修改要求，正在重新规划剧本、角色和分镜。</div>`;
+        startProjectPolling();
+      }
+    }
+
+    async function planStoryboard(){
+      const spec=project.spec||{};
+      await api(`/api/projects/${project.id}/plan`,{method:'POST',body:JSON.stringify({instruction:'先规划剧本和分镜，不要生成视频',num_shots:Math.min(30,Math.max(1,(spec.duration_minutes||1)*10))})});
+      await loadProject(); startProjectPolling();
+    }
+
+    function startProjectPolling(){
+      let count=0; const timer=setInterval(async()=>{await loadProject();count++;if(!['planning','running'].includes(project.status)||count>200)clearInterval(timer);},3000);
+    }
+
+    async function poll(){
+      if(!jobId)return;
+      let timer=null;
+      const refresh=async()=>{try{const job=await api(`/api/job/${jobId}`);await loadProject();if(job.completed||String(job.status).startsWith('failed')){if(timer)clearInterval(timer);}}catch(e){}};
+      await refresh(); timer=setInterval(refresh,3000);
+    }
+    function selectShot(n){const s=(project.shots||[]).find(x=>x.shot_number===n);if(s?.video_url)setPreview(s.video_url.startsWith('/')?API_BASE+s.video_url:s.video_url);}
+    function setPreview(url){const v=document.getElementById('preview');v.src=url;v.classList.remove('hidden');document.getElementById('emptyPreview').classList.add('hidden');}
+    async function saveShot(n,value){document.getElementById('saveState').textContent='保存中…';await api(`/api/projects/${project.id}/shots/${n}`,{method:'PATCH',body:JSON.stringify({video_prompt:value})});document.getElementById('saveState').textContent='已保存';}
+    async function addShot(after=null, source={}){
+      const body={after_shot_number:after,video_prompt:source.video_prompt||source.prompt||'',scene_description:source.scene_description||'',camera_movement:source.camera_movement||'',character_description:source.character_description||'',voiceover:source.voiceover||'',duration:source.duration||6};
+      project=await api(`/api/projects/${project.id}/shots`,{method:'POST',body:JSON.stringify(body)});renderLeft();renderTimeline();
+    }
+    async function duplicateShot(event,n){event.stopPropagation();const source=(project.shots||[]).find(s=>s.shot_number===n)||{};await addShot(n,source);}
+    async function deleteShot(event,n){event.stopPropagation();if(!confirm(`删除镜头 ${n}？已生成素材会保留在素材库。`))return;project=await api(`/api/projects/${project.id}/shots/${n}`,{method:'DELETE'});renderLeft();renderTimeline();renderAgentLog();}
+    function bindShotDrag(){
+      let dragged=null;
+      document.querySelectorAll('.shot-card').forEach(card=>{
+        card.addEventListener('dragstart',()=>{dragged=card;card.classList.add('dragging')});
+        card.addEventListener('dragend',()=>{card.classList.remove('dragging');document.querySelectorAll('.shot-card').forEach(x=>x.classList.remove('drag-over'))});
+        card.addEventListener('dragover',e=>{e.preventDefault();if(card!==dragged)card.classList.add('drag-over')});
+        card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
+        card.addEventListener('drop',async e=>{e.preventDefault();card.classList.remove('drag-over');if(!dragged||card===dragged)return;const cards=[...document.querySelectorAll('.shot-card')];const order=cards.map(x=>Number(x.dataset.shot));const from=order.indexOf(Number(dragged.dataset.shot));const to=order.indexOf(Number(card.dataset.shot));order.splice(to,0,order.splice(from,1)[0]);project=await api(`/api/projects/${project.id}/shot-order`,{method:'PATCH',body:JSON.stringify({shot_numbers:order})});renderLeft();renderTimeline();});
+      });
+    }
+    async function saveSpec(){const body={};document.querySelectorAll('[data-spec]').forEach(el=>body[el.dataset.spec]=el.dataset.spec==='duration_minutes'?parseInt(el.value):el.value);project=await api(`/api/projects/${project.id}/spec`,{method:'PATCH',body:JSON.stringify(body)});renderLeft();}
+    async function branchProject(){const b=await api(`/api/projects/${project.id}/branch`,{method:'POST'});location.href=`/studio.html?project=${b.id}`;}
+    function fillAgent(t){document.getElementById('agentInput').value=t;}
+    function escapeHtml(v=''){return v.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+    document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{activeTab=btn.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.className='tab px-3 py-3 text-xs text-gray-500');btn.className='tab px-3 py-3 text-xs font-bold text-orange-400 border-b-2 border-orange-400';renderLeft();});
+    let titleTimer;
+    document.getElementById('projectTitle').addEventListener('input',e=>{clearTimeout(titleTimer);document.getElementById('saveState').textContent='保存中…';titleTimer=setTimeout(async()=>{project=await api(`/api/projects/${project.id}`,{method:'PATCH',body:JSON.stringify({title:e.target.value})});document.getElementById('saveState').textContent='已保存';},500);});
+    loadProject().then(()=>{if(jobId)poll()}).catch(e=>alert(e.message));
+  </script>
+</body>
+</html>

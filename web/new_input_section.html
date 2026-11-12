@@ -1,0 +1,99 @@
+            <!-- Main Input Area -->
+            <div class="mb-10 relative rounded-none md:rounded-2xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-gray-200/80 focus-within:border-brand-500/60 focus-within:shadow-[0_4px_24px_rgba(255,42,42,0.12)] transition-all duration-300 input-box" onclick="if(!event.target.closest('.config-panel, input, select, button, textarea')){document.getElementById('ideaInput').focus();}">
+
+                <!-- Textarea Section -->
+                <div class="bg-white px-4 pt-4 pb-3 md:px-6 md:pt-5 md:pb-4">
+                    <div class="flex flex-col md:flex-row gap-4 min-h-[120px] md:min-h-[160px]">
+                        <!-- Left: First/Last Frames -->
+                        <div class="flex items-center justify-center md:justify-start gap-3 shrink-0 md:ml-1 md:mt-1 order-2 md:order-1">
+                            <div class="frame-upload">
+                                <i class="fa-solid fa-plus text-[24px] text-gray-400 font-light mb-1"></i>
+                                <span class="text-[12px] text-gray-400">首帧</span>
+                            </div>
+                            <div class="flex flex-col gap-1 items-center text-gray-300">
+                                <i class="fa-solid fa-arrow-right-arrow-left text-[10px]"></i>
+                            </div>
+                            <div class="frame-upload">
+                                <i class="fa-solid fa-plus text-[24px] text-gray-400 font-light mb-1"></i>
+                                <span class="text-[12px] text-gray-400">尾帧</span>
+                            </div>
+                        </div>
+                        <!-- Right: Textarea -->
+                        <div class="flex-1 md:ml-2 order-1 md:order-2 w-full flex flex-col relative h-full min-h-[120px] md:min-h-[160px]">
+                            <textarea id="ideaInput" spellcheck="false" data-lpignore="true"
+                                class="absolute inset-0 w-full h-full resize-none outline-none text-[16px] leading-relaxed placeholder-[#9ca3af] text-gray-800 bg-transparent m-0 border-0 focus:ring-0 z-20"
+                                style="padding-top: 8px; padding-bottom: 8px;"
+                                placeholder="描述您想要生成的视频内容，例如，"一只叫做奥利奥的橘猫，在赛博朋克城市里寻找遗失的小鱼干，霓虹灯闪烁，推镜头。""></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Config Panel - frosted glass -->
+                <div class="config-panel relative z-30 border-t border-gray-200/60 px-3 py-2.5 md:px-5 md:py-3" style="background: linear-gradient(180deg, rgba(249,250,251,0.85) 0%, rgba(243,244,246,0.92) 100%); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+                    <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 md:gap-3">
+                        <!-- Config Items Row -->
+                        <div class="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-2 flex-1">
+                            <!-- Model -->
+                            <div class="config-chip">
+                                <i class="fa-solid fa-cube text-brand-500 text-[10px]"></i>
+                                <select id="modelInput" class="bg-transparent font-bold outline-none cursor-pointer appearance-none pr-1 text-[12px]">
+                                    <option value="hailuo">Hailuo 2.3-Fast</option>
+                                    <option value="veo">Veo 2.0 (Google)</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down text-[7px] text-gray-300"></i>
+                            </div>
+                            <!-- Resolution -->
+                            <div class="config-chip">
+                                <i class="fa-solid fa-expand text-brand-500 text-[10px]"></i>
+                                <select id="resolutionInput" class="bg-transparent font-bold outline-none cursor-pointer appearance-none pr-1 text-[12px]">
+                                    <option value="720p">720p</option>
+                                    <option value="1080p" selected>1080p</option>
+                                    <option value="2k">2K</option>
+                                    <option value="4k">4K</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down text-[7px] text-gray-300"></i>
+                            </div>
+                            <!-- Duration Slider -->
+                            <div class="config-chip flex-1 min-w-[130px] md:max-w-[220px]" style="position: relative; z-index: 25;">
+                                <i class="fa-regular fa-clock text-brand-500 text-[10px] shrink-0"></i>
+                                <div style="flex-grow: 1; display: flex; align-items: center;">
+                                    <input type="range" id="durationSlider" min="1" max="30" value="3" oninput="updateDurationUI()" style="width: 100%; cursor: pointer; margin: 0; padding: 0; touch-action: none; -webkit-appearance: none; height: 18px;">
+                                </div>
+                                <span id="durationLabel" class="text-[11px] font-black text-brand-500 shrink-0 tabular-nums whitespace-nowrap">3 分钟</span>
+                                <input type="hidden" id="shotsInput" value="30">
+                            </div>
+                            <!-- Token Cost Estimate -->
+                            <div class="hidden md:flex items-center gap-1.5 bg-white/60 border border-white/40 rounded-lg px-2.5 py-[6px] text-[11px] text-gray-400 font-medium shrink-0">
+                                <i class="fa-brands fa-product-hunt text-[10px] text-gray-500"></i>
+                                <span>预估</span>
+                                <span id="tokenCostDisplay" class="font-black text-gray-700 tabular-nums">450</span>
+                            </div>
+                        </div>
+                        <!-- Create Button + Mobile Token -->
+                        <div class="flex items-center gap-3">
+                            <div class="flex md:hidden items-center gap-1 text-[11px] text-gray-400 font-medium shrink-0 pl-1">
+                                <i class="fa-brands fa-product-hunt text-[10px] text-gray-500"></i>
+                                <span>预估</span>
+                                <span id="tokenCostDisplayMobile" class="font-black text-gray-700 tabular-nums">450</span>
+                            </div>
+                            <button id="generateBtn" onclick="startGeneration()" class="bg-[#111827] hover:bg-black active:scale-[0.97] text-white px-5 py-2 md:px-6 md:py-2 flex-1 md:flex-none rounded-lg font-bold text-[12px] md:text-[13px] transition-all flex items-center justify-center gap-1.5 shadow-md whitespace-nowrap">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i> 创作
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Panel (Hidden by default) -->
+                <div id="statusPanel" class="hidden bg-white border-t border-gray-100 px-4 md:px-6 pt-3 pb-2">
+                    <div class="flex items-center justify-between text-[13px] font-medium text-gray-600 mb-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-circle-notch text-brand-500 animate-spin"></i>
+                            <span id="statusText">正在提交生成任务...</span>
+                        </div>
+                        <span id="timerText" class="font-mono text-gray-400">00:00</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div id="topProgress" class="h-full bg-brand-500 w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
